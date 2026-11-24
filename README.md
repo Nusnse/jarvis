@@ -6,6 +6,8 @@ searches the web, generates images, drives your phone, reads your mail. The face
 is a web page (React + Vite + Three.js + custom GLSL). The brain is Claude Code,
 run headless as a library.
 
+The ESP32 watch and its laptop brain are documented in [wearable/README.md](wearable/README.md).
+
 **The only subscription you need is Claude Code.** No API keys, no OpenAI
 account, no cloud bill — the brain runs on your existing Claude Code login, and
 the heavy work (the model itself) runs on Anthropic's servers, so even a low-end
