@@ -1,0 +1,9 @@
+# Name,     Type, SubType, Offset,  Size, Flags
+# Layout follows Waveshare's ESP-IDF example
+# (examples/esp-idf/02_lvgl_demo_v9/partitions.csv):
+# nvs is 24 KB so Wi-Fi calibration fits, and phy_init is present.
+# The app slot is 4 MB, which is plenty for this firmware and still
+# leaves most of the 32 MB flash free.
+nvs,        data, nvs,     0x9000,  0x6000,
+phy_init,   data, phy,     0xf000,  0x1000,
+factory,    app,  factory, 0x10000, 0x400000,

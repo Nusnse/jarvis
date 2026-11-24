@@ -1,0 +1,8 @@
+# The laptop brain writes a real .env from .env.example. Never commit it.
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# PlatformIO build output for the watch.
+.pio/

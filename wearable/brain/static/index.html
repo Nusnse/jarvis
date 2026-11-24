@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jarvis Brain</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --panel: #101826;
+      --line: #245066;
+      --cyan: #4de2ff;
+      --gold: #e6b35a;
+      --text: #e7f2fa;
+      --dim: #9bb4c9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, "Iowan Old Style", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% -10%, #143044 0%, transparent 42%),
+        var(--bg);
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 28px 18px 48px;
+    }
+    header {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+    .orb {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      flex: none;
+      background: radial-gradient(circle at 40% 35%, #1d4e63, #0c2230 70%);
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 24px rgba(77, 226, 255, 0.45);
+      position: relative;
+    }
+    .orb::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: var(--cyan);
+      animation: spin 2.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 {
+      font-weight: normal;
+      letter-spacing: 0.18em;
+      font-size: 1.4rem;
+      margin: 0 0 4px;
+      color: var(--gold);
+    }
+    p { line-height: 1.45; }
+    .lede { margin: 0; color: var(--dim); font-family: "Segoe UI", sans-serif; font-size: 0.95rem; }
+    .pill {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 0.8rem;
+      color: var(--cyan);
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    label { display: block; font-family: "Segoe UI", sans-serif; color: var(--dim); font-size: 0.85rem; margin-bottom: 8px; }
+    textarea, input[type="file"] {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #0b121c;
+      color: var(--text);
+      font: 1rem "Segoe UI", sans-serif;
+      padding: 12px;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    button {
+      font-family: "Segoe UI", sans-serif;
+      border-radius: 999px;
+      border: 1px solid var(--cyan);
+      background: #10192a;
+      color: var(--text);
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+    button.gold { border-color: var(--gold); color: var(--gold); }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    #log {
+      white-space: pre-wrap;
+      font-family: "Segoe UI", sans-serif;
+      min-height: 140px;
+      margin: 0;
+    }
+    .hint { color: var(--dim); font-family: "Segoe UI", sans-serif; font-size: 0.85rem; }
+    .error { color: #ffb4a8; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="orb" aria-hidden="true"></div>
+      <div>
+        <h1>JARVIS</h1>
+        <p class="lede">The laptop side of the watch. Type here the same way the watch will, and read the reply before the board arrives.</p>
+        <div class="pill" id="status">Checking the brain…</div>
+      </div>
+    </header>
+
+    <section class="panel">
+      <label for="message">Say something</label>
+      <textarea id="message" placeholder="Good morning, Jarvis. How should I start the day?"></textarea>
+      <div class="row">
+        <button type="button" id="send">Send</button>
+        <button type="button" data-text="Good morning, Jarvis. How should I start the day?">Morning</button>
+        <button type="button" data-text="Tell me a short joke.">Joke</button>
+        <button type="button" data-text="Give me one sentence to help me focus.">Focus</button>
+        <button type="button" class="gold" id="reset">New conversation</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <label>Reply</label>
+      <p id="log">Nothing yet. Send a sentence and the answer shows up here. In practice mode, Jarvis says so.</p>
+    </section>
+
+    <section class="panel">
+      <label for="audio">Try the microphone path</label>
+      <p class="hint">Pick a short WAV file from this computer. The brain transcribes it, then answers. With no speech key, it uses a practice sentence so you can see the path work.</p>
+      <input id="audio" type="file" accept="audio/wav,.wav">
+      <div class="row">
+        <button type="button" id="send-audio" class="gold">Send recording</button>
+      </div>
+    </section>
+  </main>
+  <script>
+    const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
+    const messageEl = document.getElementById("message");
+    const sendBtn = document.getElementById("send");
+    let sessionId = localStorage.getItem("jarvis-session") || "";
+
+    function setLog(text, isError) {
+      logEl.textContent = text;
+      logEl.className = isError ? "error" : "";
+    }
+
+    async function refreshStatus() {
+      try {
+        const res = await fetch("/health");
+        const data = await res.json();
+        if (data.using_mock_llm) {
+          statusEl.textContent = "Practice mode — no cloud model. " + (data.mock_llm_reason || "");
+        } else {
+          statusEl.textContent = "Live model: " + data.llm_provider + " / " + data.llm_model;
+        }
+      } catch (err) {
+        statusEl.textContent = "The brain page loaded, but /health did not answer.";
+      }
+    }
+
+    async function sendText(text) {
+      const cleaned = text.trim();
+      if (!cleaned) {
+        setLog("Type a sentence first.", true);
+        return;
+      }
+      sendBtn.disabled = true;
+      setLog("Asking Jarvis…");
+      try {
+        const res = await fetch("/v1/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: cleaned, session_id: sessionId, device_id: "browser" })
+        });
+        const data = await res.json();
+        sessionId = data.session_id || sessionId;
+        localStorage.setItem("jarvis-session", sessionId);
+        setLog(data.reply || "No reply.", !data.ok);
+      } catch (err) {
+        setLog("The request did not go through. Is this page still connected to the brain?", true);
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    sendBtn.addEventListener("click", () => sendText(messageEl.value));
+    messageEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        sendText(messageEl.value);
+      }
+    });
+    document.querySelectorAll("button[data-text]").forEach((button) => {
+      button.addEventListener("click", () => {
+        messageEl.value = button.getAttribute("data-text");
+        sendText(messageEl.value);
+      });
+    });
+    document.getElementById("reset").addEventListener("click", async () => {
+      if (sessionId) {
+        await fetch("/v1/session/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId })
+        });
+      }
+      sessionId = "";
+      localStorage.removeItem("jarvis-session");
+      setLog("Conversation cleared. The next message starts fresh.");
+    });
+    document.getElementById("send-audio").addEventListener("click", async () => {
+      const file = document.getElementById("audio").files[0];
+      if (!file) {
+        setLog("Choose a WAV file first.", true);
+        return;
+      }
+      setLog("Sending the recording…");
+      const res = await fetch("/v1/voice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "audio/wav",
+          "X-Session-Id": sessionId,
+          "X-Device-Id": "browser"
+        },
+        body: await file.arrayBuffer()
+      });
+      const data = await res.json();
+      sessionId = data.session_id || sessionId;
+      localStorage.setItem("jarvis-session", sessionId);
+      const heard = data.transcript ? "Heard: " + data.transcript + "\n\n" : "";
+      setLog(heard + (data.reply || "No reply."), !data.ok);
+    });
+    refreshStatus();
+  </script>
+</body>
+</html>

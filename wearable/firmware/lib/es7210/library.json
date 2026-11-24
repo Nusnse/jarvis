@@ -1,0 +1,7 @@
+{
+  "name": "es7210",
+  "version": "1.0.0",
+  "description": "ES7210 microphone ADC driver copied from the official Waveshare ESP32-S3-Touch-AMOLED-1.75C Arduino example 06_ES7210. Espressif MIT license. See README.md.",
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"]
+}
